@@ -13,7 +13,7 @@
  */
 
 class BuiltIns {
-    const EXT_CODE = 'Core';
+    const EXT_CORE = 'Core';
     const EXT_DATE = 'date';
     const EXT_PCRE = 'pcre';
     const EXT_REFLECTION = 'Reflection';
@@ -158,7 +158,9 @@ function main() {
     global $argv;
 
     if (!isset($argv[1])) {
-        fwrite(STDERR,"usage: php depends.php <file-or-directory> [file-or-directory...]");
+        $info = pathinfo($argv[0]);
+        fwrite(STDERR,"usage: {$info['filename']} <file-or-directory> [file-or-directory...]" . PHP_EOL);
+        exit(1);
     }
 
     $exts = [];
