@@ -26,8 +26,24 @@ class BuiltIns {
     }
 }
 
-function touch_file(string $file) : array {
+class FileNotFoundException extends Exception {}
+
+function touch_file(string $file,array $options) : array {
     if (is_file($file)) {
+        if (isset($options['suffix'])) {
+            while (!is_null(key($options['suffix']))) {
+                $suffix = current($options['suffix']);
+                if (substr($file,strlen($file)-strlen($suffix)) == $suffix) {
+                    break;
+                }
+                next($options['suffix']);
+            }
+            $found = !is_null(key($options['suffix']));
+            reset($options['suffix']);
+            if (!$found) {
+                return [];
+            }
+        }
         return calc_depends(file_get_contents($file));
     }
 
@@ -44,10 +60,14 @@ function touch_file(string $file) : array {
                 continue;
             }
 
-            $exts += touch_file($file . DIRECTORY_SEPARATOR . $ent);
+            $exts += touch_file($file . DIRECTORY_SEPARATOR . $ent,$options);
         }
 
         return $exts;
+    }
+
+    if (!@lstat($file)) {
+        throw new FileNotFoundException("'$file' does not exist");
     }
 
     return [];
@@ -154,18 +174,45 @@ function try_constant(int &$i,array &$exts,string $name,array $toks) : bool {
     return false;
 }
 
+function parse_options(&$optind,array $argv) : array {
+    $OPTIONS = [
+        'suffix:',
+    ];
+
+    $options = getopt("",$OPTIONS,$optind);
+    if (isset($options['suffix'])) {
+        $options['suffix'] = explode(',',$options['suffix']);
+    }
+
+    return $options;
+}
+
+function fail_with_usage() {
+    $help =<<<EOF
+usage: {$GLOBALS['pathinfo']['basename']} [options] <file-or-directory> [file-or-directory...]
+
+Options:
+  --suffix=<suffix1[,suffix2,...]>     Only processes files having suffix(es)
+EOF;
+    fwrite(STDERR,$help . PHP_EOL);
+    exit(1);
+}
+
 function main() {
     global $argv;
 
     if (!isset($argv[1])) {
-        $info = pathinfo($argv[0]);
-        fwrite(STDERR,"usage: {$info['filename']} <file-or-directory> [file-or-directory...]" . PHP_EOL);
-        exit(1);
+        fail_with_usage();
     }
 
     $exts = [];
-    foreach (array_slice($argv,1) as $arg) {
-        $exts += touch_file($arg);
+    $options = parse_options($optind,$argv);
+    $fileargs = array_slice($argv,$optind);
+    if (empty($fileargs)) {
+        fail_with_usage();
+    }
+    foreach ($fileargs as $arg) {
+        $exts += touch_file($arg,$options);
     }
     $exts = array_keys($exts);
     natcasesort($exts);
@@ -176,7 +223,24 @@ function main() {
             $name .= " (builtin)";
         }
     });
-    print implode(PHP_EOL,$exts) . PHP_EOL;
+    if (!empty($exts)) {
+        print implode(PHP_EOL,$exts) . PHP_EOL;
+    }
+    else {
+        fwrite(
+            STDERR,
+            "{$GLOBALS['pathinfo']['basename']}: no results" . PHP_EOL
+        );
+    }
 }
 
-main();
+try {
+    $GLOBALS['pathinfo'] = pathinfo($argv[0]);
+    main();
+} catch (Exception $ex) {
+    fwrite(
+        STDERR,
+        "{$GLOBALS['pathinfo']['basename']}: " . get_class($ex) . ': ' . $ex->getMessage() . PHP_EOL
+    );
+    exit(1);
+}
