@@ -30,24 +30,30 @@ curl
 date (builtin)
 dom
 filter
+gd
 hash
 iconv
+intl
 json
 libxml
+mbstring
 pcre (builtin)
 PDO
 posix
-readline
 Reflection (builtin)
 session
 SimpleXML
 SPL (builtin)
 standard (builtin)
 xml
+zip
 zlib
 ~~~
 
 ## Limitations
 
-The script does not check global constants at this time. If a project uses constants defined by an extension and nothing else from the extension (i.e. functions or classes), then the extension will not be captured. Note that class constants don't need to be handled specifically since the extension will be captured via the class component of a class constant expression.
+The script does not check global constants at this time. If a project uses constants defined by an extension and nothing else from the extension (i.e. functions or classes), then the extension will not be detected. Note that this limitation does not apply to class constants; class constants don't need to be handled specifically since the extension will be detected via the class component of a class constant expression (e.g. `PDO::FETCH_ASSOC` captures class `PDO`).
 
+The script cannot detect an extension if its usage is limited to functions/classes denoted via string literals. For example, if you only use the `ctype` extension via a string reference to one of its functions (e.g. `array_map('ctype_alpha',str_split('name1'))`), then the tool will not detect the extension. The same applies to objects instantiated from class names passed as strings.
+
+The script cannot determine if particular extension usage is optional in your application (e.g. via `extension_loaded()`). Furthermore, since only a regular lexical analysis is performed, the tool cannot follow code paths and test for optional usage.

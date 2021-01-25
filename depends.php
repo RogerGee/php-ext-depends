@@ -27,6 +27,7 @@ class BuiltIns {
 }
 
 class FileNotFoundException extends Exception {}
+class TokenNotFoundException extends Exception {}
 
 function touch_file(string $file,array $options) : array {
     if (is_file($file)) {
@@ -101,40 +102,64 @@ function calc_depends(string $code) : array {
     return $exts;
 }
 
-function find_tok($match,int $index,array $toks) {
-    if ($index < 0 || $index >= count($toks)) {
-        return false;
-    }
-
-    $tok = $toks[$index];
+function verify_tok($match,$tok) : bool {
     if (is_string($tok)) {
         $id = null;
         $value = $tok;
     }
     else {
+        assert(isset($tok[0],$tok[1]));
         $id = $tok[0];
         $value = $tok[1];
     }
 
-    $result = false;
     if (is_array($match)) {
         assert(isset($match[0],$match[1]));
-        $result = (token_name($match[0]) == $id) && ($match[1] == $value);
-    }
-    else {
-        $result = ($value == $match);
+        return ($match[0] == $id) && ($match[1] == $value);
     }
 
-    return $result;
+    if (is_int($match)) {
+        return ($id == $match);
+    }
+
+    return ($value == $match);
+}
+
+function seek_tok(int $start,array $toks,int $inc = 1,array $skip = [T_WHITESPACE]) {
+    $i = $start;
+    while (true) {
+        if ($i < 0 || $i >= count($toks)) {
+            throw new TokenNotFoundException;
+        }
+
+        $tok = $toks[$i];
+        if (!in_array($tok[0],$skip)) {
+            break;
+        }
+        $i += $inc;
+    }
+
+    return $tok;
 }
 
 function try_function(int &$i,array &$exts,string $name,array $toks) : bool {
-    if (!find_tok('(',$i + 1,$toks)) {
-        return false;
-    }
-
     try {
+        $tok = seek_tok($i + 1,$toks);
+        if (!verify_tok('(',$tok)) {
+            return false;
+        }
+
+        // Make sure name isn't part of function declaration or call expression.
+        $tok = seek_tok($i - 1,$toks,-1);
+        if (verify_tok([T_OBJECT_OPERATOR,'->'],$tok)
+            || verify_tok(T_DOUBLE_COLON,$tok)
+            || verify_tok(T_FUNCTION,$tok))
+        {
+            return false;
+        }
+
         $func = new ReflectionFunction($name);
+
     } catch (Exception $ex) {
         return false;
     }
@@ -152,7 +177,17 @@ function try_function(int &$i,array &$exts,string $name,array $toks) : bool {
 
 function try_class(int &$i,array &$exts,string $name,array $toks) : bool {
     try {
+        // Make sure name isn't part of function declaration or call expression.
+        $tok = seek_tok($i - 1,$toks,-1);
+        if (verify_tok([T_OBJECT_OPERATOR,'->'],$tok)
+            || verify_tok(T_DOUBLE_COLON,$tok)
+            || verify_tok(T_FUNCTION,$tok))
+        {
+            return false;
+        }
+
         $cls = new ReflectionClass($name);
+
     } catch (Exception $ex) {
         return false;
     }
