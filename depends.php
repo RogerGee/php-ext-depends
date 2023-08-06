@@ -10,12 +10,19 @@
  * your web server environment.
  *
  * usage: php depends.php <file-or-directory> [another-file-or-directory...]
+ *
+ * Check Core Extensions for class BuiltIns:
+ * https://www.php.net/manual/en/extensions.membership.php
+ *
  */
 
 class BuiltIns {
     const EXT_CORE = 'Core';
     const EXT_DATE = 'date';
+    const EXT_HASH = 'hash';
+    const EXT_JSON = 'json';
     const EXT_PCRE = 'pcre';
+    const EXT_RANDOM = 'random';
     const EXT_REFLECTION = 'Reflection';
     const EXT_SPL = 'SPL';
     const EXT_STANDARD = 'standard';
