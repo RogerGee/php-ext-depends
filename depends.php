@@ -29,7 +29,25 @@ class BuiltIns {
 
     public static function get() : array {
         $class = new ReflectionClass(get_class());
-        return array_fill_keys(array_values($class->getConstants()),true);
+        $list = array_fill_keys(array_values($class->getConstants()),true);
+
+        // Adjust core extension list based on PHP version.
+
+        $ver = (int)(PHP_MAJOR_VERSION . PHP_MINOR_VERSION);
+
+        if ($ver < 74) {
+            unset($list['hash']);
+        }
+
+        if ($ver < 80) {
+            unset($list['json']);
+        }
+
+        if ($ver < 82) {
+            unset($list['random']);
+        }
+
+        return $list;
     }
 }
 

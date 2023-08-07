@@ -28,27 +28,26 @@ Core (builtin)
 ctype
 curl
 date (builtin)
-dom
 filter
 gd
-hash
+hash (builtin)
 iconv
-intl
-json
+json (builtin)
 libxml
 mbstring
 pcre (builtin)
-PDO
-posix
 Reflection (builtin)
 session
 SimpleXML
 SPL (builtin)
 standard (builtin)
 xml
-zip
 zlib
 ~~~
+
+### PHP Version
+
+You should run this utility using the minimum PHP supported by your project. The list of built-in extensions is modified based on PHP version since some non-built-in extensions were updated to built-in extensions in later versions of PHP.
 
 ## Limitations
 
